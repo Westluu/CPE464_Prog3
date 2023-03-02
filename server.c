@@ -116,7 +116,7 @@ STATE filename(Connection *client, uint8_t recv_buf[], uint32_t recv_len, uint32
     addToPollSet(client->sk_num);
 
     get_filename(recv_buf, filename);
-    file = fopen(filename, "r");
+    file = fopen(filename, "w");
 
     if (file == NULL) {
         printf("BAD\n");

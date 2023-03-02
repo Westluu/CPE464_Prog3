@@ -37,7 +37,7 @@ server: server.c $(OBJS)
 # 	$(CC) $(CFLAGS) -o myServer myServer.c $(OBJS) $(LIBS)
 
 .c.o:
-	gcc -c $(CFLAGS) $< -o $@ $(LIBS)
+	gcc -c $(CFLAGS) $< -o $@
 
 cleano:
 	rm -f *.o

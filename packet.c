@@ -12,28 +12,41 @@ void print_hex(uint8_t buff[], int len) {
 int create_header(uint8_t buff[], uint32_t seq_num, uint8_t flag) {
     uint32_t offset = 0;
     uint16_t checksum = 0;
+    uint32_t nseq_num = htonl(seq_num);
     int pdu_len = 0;
 
-    memcpy(buff, &seq_num, SEQ_LEN);
+    memcpy(buff, &nseq_num, SEQ_LEN);
     offset += SEQ_LEN;
 
     memcpy(buff + offset, &checksum, CHK_LEN);
     offset += CHK_LEN;
+
     memcpy(buff + offset, &flag, FLAG_LEN);
     offset += FLAG_LEN;
 
+    pdu_len = offset;
     checksum = in_cksum((unsigned short *) buff, pdu_len);
     memcpy(buff + SEQ_LEN, &checksum, CHK_LEN);
+    
+    // printf("HEADER\n");
+    // printf("Len: %d\n", pdu_len);
 
-    return offset; 
+    // print_hex(buff, pdu_len);
+
+    // if ( in_cksum((unsigned short *) buff, pdu_len) == 0) {
+    //     printf("WORKED\n");
+    // } else {
+    //     printf("FAILED\n");
+    // }
+    return pdu_len; 
 }
 
 int create_packet(uint8_t buff[], uint32_t seq_num, uint8_t flag, uint8_t data[], uint32_t data_len) {
     uint32_t offset = 0;
     uint16_t checksum = 0;
+    uint32_t nseq_num = htonl(seq_num);
     int pdu_len = 0;
-
-    memcpy(buff, &seq_num, SEQ_LEN);
+    memcpy(buff, &nseq_num, SEQ_LEN);
     offset += SEQ_LEN;
 
     memcpy(buff + offset, &checksum, CHK_LEN);
@@ -113,6 +126,7 @@ uint8_t get_fileLen(uint8_t recv_packet[]) {
 char *get_filename(uint8_t recv_packet[], char *filename) {
     uint8_t file_len = get_fileLen(recv_packet);
     memcpy(filename, recv_packet + HEADER_LEN + WINDOW_LEN + BUFFER_LEN + FILE_LEN, file_len);
+    filename[file_len] = '\0';
     printf("File: %s\n", filename);
     return filename;    
 }

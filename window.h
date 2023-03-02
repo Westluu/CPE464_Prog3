@@ -11,12 +11,13 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define MAXBUF 1407
+#include "packet.h"
 
+#define MAXBUF 1407
 
 typedef struct windowBuf
 {
-    uint8_t buf[MAXBUF];
+    uint8_t packet[MAXBUF];
     uint8_t valid;
 } WindowBuf;
 

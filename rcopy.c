@@ -13,23 +13,25 @@ enum State{
 void processFile(char *argv[]);
 STATE send_filename(char *filename, Connection *server, uint32_t seq_num, uint32_t window_size, uint32_t buffer_size);
 STATE connect_server(char *argv[], Connection *server);
+STATE send_data(FILE *upload_file, Connection *server, uint32_t seq_num, Window window);
 int checkArgs(int argc, char * argv[]);
 
 int count = 0;
 int main(int argc, char *argv[]) {
-    Window window;
     setupPollSet();
-
     sendtoErr_init(atof(argv[5]), DROP_OFF, FLIP_OFF, DEBUG_ON, RSEED_OFF);
-    init_window(&window, atoi(argv[5]));
     processFile(argv);
 }
 
 void processFile(char *argv[]) {
+    Window window;
     uint32_t seq_num = 0;
     STATE state = START;
+
+    check_file();
+    init_window(&window, atoi(argv[5]));
     Connection *server = (Connection *) calloc(1, sizeof(Connection));
-    
+
     while (state != DONE) {
         if (count > 9) {
             state = DONE;
@@ -46,6 +48,7 @@ void processFile(char *argv[]) {
                 break;
     
             case SEND_DATA:
+                state = send_data(argv[1], server, seq_num);
                 break;
 
             case WAIT:
@@ -93,19 +96,28 @@ STATE send_filename(char *filename, Connection *server, uint32_t seq_num, uint32
     //Wait 1 second for FileName ACK
     if ((socket = pollCall(1000)) >= 0){  //recieved the file ACK
         uint8_t recv_pkt[MAXBUF];
+        uint8_t flag = 0;
         uint32_t recv_len = CsafeRecvfrom(socket, recv_pkt, MAXBUF, server);
-        printf("GOT ACK\n");
-        print_hex(recv_pkt, recv_len);
+        flag = get_flag(recv_pkt);
+        
+        if (flag == OK_FILENAME) {
+            printf("OK Filename");
+            return SEND_DATA;
+        } 
+
+        else if (flag == BAD_FILENAME) {
+            printf("Bad Filename\n");
+            return DONE;
+        }
 
     } else { //Did not recieve file ack
-        uint8_t recv_pkt[MAXBUF];
-        uint32_t recv_len = CsafeRecvfrom(socket, recv_pkt, MAXBUF, server);
-        uint8_t flag = get_flag(recv_pkt);
-        printf("flag: %d\n", flag);
-        printf("Did not get ACK\n");
         count++;
-        // return FILENAME;
     }
+
+    return DONE;
+}
+
+STATE send_data(FILE *upload_file, Connection *server, uint32_t seq_num, Window window) {
     return DONE;
 }
 
@@ -117,7 +129,7 @@ int checkArgs(int argc, char * argv[]) {
 		printf("usage: %s from-filename to-filename window-size buffer-size error-percent remote-machine remote-port\n", argv[0]);
 		exit(1);
 	}
-	
+
 	portNumber = atoi(argv[7]);
 	return portNumber;
 }

@@ -28,14 +28,16 @@ int safeRecvfrom(int socketNum, void * buf, int len, int flags, struct sockaddr 
 
 int CsafeRecvfrom(int socketNum, uint8_t *buf, int len, Connection *from)
 {
-	int returnValue = 0;
-	if ((returnValue = recvfrom(socketNum, buf, (size_t) len, 0, (struct sockaddr *) &(from->remote), &from->len)) < 0)
+	int recv_len = 0;
+	from->len = sizeof(struct sockaddr_in6);
+
+	if ((recv_len = recvfrom(socketNum, buf, (size_t) len, 0, (struct sockaddr *) &(from->remote), &from->len)) < 0)
 	{
 		perror("recvfrom: ");
 		exit(-1);
 	}
 	
-	return returnValue;
+	return recv_len;
 }
 
 int safeSendto(int socketNum, void * buf, int len, int flags, struct sockaddr *srcAddr, int addrLen)
