@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "cpe464.h": "c",
+        "packet.h": "c"
+    }
+}
