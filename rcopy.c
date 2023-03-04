@@ -20,11 +20,10 @@ int checkArgs(int argc, char * argv[]);
 
 int count = 0;
 int read_EOF = 0;
-uint32_t rr_num = 0;
 
 int main(int argc, char *argv[]) {
     setupPollSet();
-    sendtoErr_init(atof(argv[5]), DROP_OFF, FLIP_OFF, DEBUG_ON, RSEED_OFF);
+    sendtoErr_init(atof(argv[5]), DROP_ON, FLIP_ON, DEBUG_ON, RSEED_OFF);
     processFile(argv);
     return 1;
 }
@@ -38,7 +37,6 @@ void processFile(char *argv[]) {
     Connection *server = (Connection *) calloc(1, sizeof(Connection));
     while (state != DONE) {
         if (count > 9) {
-            printf("COUNT REACHED 10");
             state = DONE;
         }
         switch (state) {
@@ -77,7 +75,7 @@ STATE connect_server(char *argv[], Connection *server){
         return DONE;
 
     } else {
-        printf("Connected to server\n");
+        // printf("Connected to server\n");
         addToPollSet(server->sk_num);
         return FILENAME;
     }
@@ -102,12 +100,10 @@ STATE send_filename(char *filename, Connection *server, uint32_t seq_num, uint32
         flag = get_flag(recv_pkt);
 
         if (flag == OK_FILENAME) {
-            printf("OK Filename\n");
             return SEND_DATA;
         } 
         
         else if (flag == BAD_FILENAME) {
-            printf("Bad Filename\n");
             return DONE;
         }
 
@@ -120,20 +116,12 @@ STATE send_filename(char *filename, Connection *server, uint32_t seq_num, uint32
 
 //hang 1 second resend data
 STATE send_data(FILE *upload_file, Connection *server, Window *window, uint32_t buffer_size) {
-    // printf("in send data\n");
     uint32_t read_len = 0;
     uint8_t read_buf[buffer_size];
     int socket = 0;
 
-    //Open Window
-    print_window(window);
-
     if (!check_closed(window) && !read_EOF) {
-        printf("Window Open\n");
-        printf("read EOF: %d\n", read_EOF);
-        printf("last: %d\n", check_last(window));
         read_len = fread(read_buf, sizeof(uint8_t), buffer_size, upload_file); //safe read
-        read_buf[buffer_size] = '\0';
         
         if (read_len > 0) {
             uint8_t data_buff[MAXBUF];
@@ -147,29 +135,32 @@ STATE send_data(FILE *upload_file, Connection *server, Window *window, uint32_t 
         }
 
         while ((socket = pollCall(0)) >= 0) {
-            printf("in check flags\n");
             uint8_t recv_pkt[MAXBUF];
-            CsafeRecvfrom(socket, recv_pkt, MAXBUF, server);
-            uint8_t flag = get_flag(recv_pkt);
-            check_flag(window, server, flag, recv_pkt, read_len);
+            uint32_t recv_len = CsafeRecvfrom(socket, recv_pkt, MAXBUF, server);
+            int checksum = in_cksum((unsigned short *) recv_pkt, recv_len);;
+            if (checksum == 0) {
+                uint8_t flag = get_flag(recv_pkt);
+                check_flag(window, server, flag, recv_pkt, read_len);
+            }
         }
 
     } 
     
     //Full Window
     else if (check_full(window) || (read_EOF && !check_last(window)) ) {
-        printf("window full\n");
+        // printf("window full\n");
         if ((socket = pollCall(1000)) < 0) {
-            printf("Sent lowest SEQ:%d pkt\n", rr_num);
-            send_seq_pkt(window, rr_num, server);
-            printf("count: %d\n", count);
+            send_seq_pkt(window, get_lower(window), server);
             count++;
         }
         else {
             uint8_t recv_pkt[MAXBUF];
-            CsafeRecvfrom(socket, recv_pkt, MAXBUF, server);
-            uint8_t flag = get_flag(recv_pkt);
-            check_flag(window, server, flag, recv_pkt, read_len);
+            uint32_t recv_len = CsafeRecvfrom(socket, recv_pkt, MAXBUF, server);
+            int checksum = in_cksum((unsigned short *) recv_pkt, recv_len);;
+            if (checksum == 0) {
+                uint8_t flag = get_flag(recv_pkt);
+                check_flag(window, server, flag, recv_pkt, read_len);
+            }
          }
     }
 
@@ -194,13 +185,9 @@ void check_read(int read_len) {
 
 void check_flag(Window *window, Connection *server, uint8_t flag, uint8_t recv_pkt[], uint32_t recv_len) {
      if (flag == RR) {
-        printf("got RR");
-        rr_num = get_RR(recv_pkt);
-        printf("slide window\n");
-        slide_window(window, rr_num);
-
+        slide_window(window, get_RR(recv_pkt));
+        count = 0;
     } else if (flag == SREJ) {
-        printf("got SREJ");
         Csend_SREJ_pkt(window, recv_pkt, server);
         count = 0;
     }

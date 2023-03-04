@@ -27,7 +27,7 @@ enum State{
     START, FILENAME, RECV_DATA, DONE
 };
 
-void process_server(int serverScoketNumber);
+void process_server(int serverScoketNumber, char *argv[]);
 void process_client(uint32_t serverSocketNumber, uint8_t recv_buf[], uint32_t recv_len, Connection *client);
 void loop_window(Window *window, uint32_t recv_len, FILE *file, Connection *client);
 void recover_packet(Window *window, uint32_t recv_seq, Connection *client);
@@ -38,6 +38,7 @@ void handleZombie(int sig);
 int count = 0;
 uint32_t highest_seq = 0;
 uint32_t seq_num = 0;
+uint32_t server_seq_num = 0;
 FILE *file = 0;
 
 STATE filename(Connection *client, uint8_t recv_buf[], uint32_t recv_len, uint32_t window_size, uint32_t buffer_size, uint8_t flag, FILE *file);
@@ -49,13 +50,12 @@ int main(int argc, char *argv[]) {
 
     setupPollSet();
     portNumber = processArgs(argc, argv);
-    sendtoErr_init(atof(argv[1]), DROP_OFF, FLIP_OFF, DEBUG_ON, RSEED_OFF);
     serverSocketNumber = udpServerSetup(portNumber);
-    process_server(serverSocketNumber);
+    process_server(serverSocketNumber, argv);
     return 0;
 }
 
-void process_server(int serverSocketNumber) {
+void process_server(int serverSocketNumber, char *argv[]) {
     pid_t pid = 0;
     Connection *client = (Connection *) calloc(1, sizeof(Connection));
     uint8_t recv_buf[MAXBUF];
@@ -76,6 +76,7 @@ void process_server(int serverSocketNumber) {
         if (pid == 0) {
             //in child process
             printf("Child for() - child pid: %d\n", getpid());
+            sendtoErr_init(atof(argv[1]), DROP_ON, FLIP_ON, DEBUG_ON, RSEED_OFF);
             process_client(serverSocketNumber, recv_buf, recv_len, client);
             exit(0);
         }
@@ -85,10 +86,8 @@ void process_server(int serverSocketNumber) {
 void process_client(uint32_t serverSocketNumber, uint8_t recv_buf[], uint32_t recv_len, Connection *client) {
     Window window;
     STATE state = FILENAME;
-
     uint32_t window_size = get_windowSize(recv_buf);
     uint32_t buffer_size = get_bufferSize(recv_buf);
-    printf("buffer size: %d\n", buffer_size);
     init_window(&window, window_size);
     uint8_t flag = get_flag(recv_buf);
     open_file(recv_buf);
@@ -109,6 +108,7 @@ void process_client(uint32_t serverSocketNumber, uint8_t recv_buf[], uint32_t re
                 break;
             
             case DONE:
+                printf("DONE\n");
                 fclose(file);
                 exit(0);
                 break;
@@ -131,13 +131,11 @@ STATE filename(Connection *client, uint8_t recv_buf[], uint32_t recv_len, uint32
         //send bad file 
         ack_len = create_header(ack, 0, BAD_FILENAME);
         safeErrSend(ack, ack_len, client);
-        printf("sent bad file\n");
         return DONE;
     } else {
         //send Ok file
         ack_len = create_header(ack, 0, OK_FILENAME);
         safeErrSend(ack, ack_len, client);
-        printf("send ok file\n");
         return RECV_DATA;
     }
 }
@@ -145,60 +143,55 @@ STATE filename(Connection *client, uint8_t recv_buf[], uint32_t recv_len, uint32
 STATE recv_data(Connection *client, FILE *file, Window *window) {
     int socket = 0;
     if ((socket = pollCall(10000)) >= 0) {
-        printf("in here\n");
         uint8_t recv_pkt[MAXBUF];
         uint32_t recv_len = CsafeRecvfrom(socket, recv_pkt, MAXBUF, client);
 
         uint8_t flag = get_flag(recv_pkt);
         if (flag == EOF_FLAG) {
-            printf("GOT EOF\n");
             return DONE;
         }
         
+        int checksum = in_cksum((unsigned short *) recv_pkt, recv_len);
+        //Corrupt Packet
+        if (checksum != 0) {
+            return RECV_DATA;
+        }
         //insert packet into the window
-        insert_packet(window, recv_pkt, recv_len);
 
         uint32_t recv_seq_num = get_seqnum(recv_pkt);
-        int checksum = in_cksum((unsigned short *) recv_pkt, recv_len);
 
         //If we get expected Data Packet
-        if (recv_seq_num == seq_num && checksum == 0) {
-            printf("Valid Data pkt\n");
+        if (recv_seq_num == seq_num) {
+            insert_packet(window, recv_pkt, recv_len);
             loop_window(window, recv_len, file, client);
-            send_RR_packet(seq_num - 1 , seq_num, client);
-            return RECV_DATA;
+            send_RR_packet(server_seq_num , seq_num, client);
+            server_seq_num++;
+
         }
 
         //If we get a duplicate Packet
-        else if (recv_seq_num < seq_num && checksum == 0) {
-            printf("Got Duplicate Packet\n");
-            send_RR_packet(seq_num - 1, seq_num, client);
+        else if (recv_seq_num < seq_num) {
+            send_RR_packet(server_seq_num, seq_num, client);
+            server_seq_num++;
+
         }
 
         //If we get a out of order packet
-        else if (recv_seq_num > seq_num && checksum == 0) {
-            printf("higher eexpect packet\n");
-            printf("recv_seq_num: %d\n", recv_seq_num);
+        else if (recv_seq_num > seq_num) {
+            insert_packet(window, recv_pkt, recv_len);
             recover_packet(window, recv_seq_num, client);
-            return RECV_DATA;
         }
-
-        //Corrupt Packet
-        else if (checksum != 0) {
-            return RECV_DATA;
-        }
+        return RECV_DATA;
 
     }
     return DONE;
 }
 
 void recover_packet(Window *window, uint32_t recv_seq, Connection *client) {
-    printf("here\n");
     int i = 0;
     highest_seq = max(highest_seq, seq_num);
     for (i = highest_seq; i < recv_seq; i++) {
-        printf("recv_seq_num: %d\n", recv_seq);
-        Ssend_SREJ_pkt(window, seq_num, client);
+        Ssend_SREJ_pkt(server_seq_num, i, client);
     }
     highest_seq = max(highest_seq, recv_seq +1);
 }
@@ -209,10 +202,6 @@ void loop_window(Window *window, uint32_t recv_len, FILE *file, Connection *clie
     uint8_t valid = get_valid(window, seq_num);
     while (valid){
         uint32_t data_len = recv_len - HEADER_LEN;
-        // printf("dataL: %d\n", data_len);
-        // printf("packet: %.*s\n", data_len, (window->buf)[seq_num].packet);
-        // print_hex(read_packet(window, ) + HEADER_LEN, data_len);
-        printf("here\n");
         fwrite(get_packet(window, seq_num) + HEADER_LEN, sizeof(uint8_t), data_len, file);
         fflush(file);
         set_valid(window, seq_num, 0);

@@ -38,6 +38,7 @@ int check_full(Window *window);
 int check_closed(Window *window);
 int check_last(Window *window);
 void update_current(Window *window);
+uint32_t get_lower(Window *window);
 
 void set_valid(Window *window, uint32_t seq_num, uint8_t valid);
 uint8_t get_valid(Window *window, uint32_t seq_num);

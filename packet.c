@@ -48,9 +48,9 @@ void send_seq_pkt(Window *window, uint32_t seq_num, Connection *server) {
 }
 
 
-void Ssend_SREJ_pkt(Window *window, uint32_t SREJ_num, Connection *client) {
+void Ssend_SREJ_pkt(uint32_t seq_num, uint32_t SREJ_num, Connection *client) {
     uint8_t SREJ_pkt[MAXBUF];
-    uint32_t SREJ_len = read_packet(window, SREJ_pkt, SREJ_num);
+    uint32_t SREJ_len = create_RR_packet(SREJ_pkt, seq_num, SREJ, SREJ_num);
     safeErrSend(SREJ_pkt, SREJ_len, client);
 }
 
@@ -66,9 +66,6 @@ void Csend_SREJ_pkt(Window *window, uint8_t recv_pkt[], Connection *server) {
 void send_RR_packet(uint32_t seq_num, uint32_t RR_num, Connection *client) {
     uint8_t RR_buff[MAXBUF];
     uint32_t RR_len = create_RR_packet(RR_buff, seq_num, RR, RR_num);
-    // printf("RR PKT\n");
-    // printf("RR NUM:%d\n", RR_num);
-    // print_hex(RR_buff, RR_len);
     safeErrSend(RR_buff, RR_len, client);
 }
 
@@ -92,17 +89,6 @@ int create_RR_packet(uint8_t RR_buff[], uint32_t seq_num, uint8_t flag, uint32_t
     checksum = in_cksum((unsigned short *) RR_buff, pdu_len);
     memcpy(RR_buff + SEQ_LEN, &checksum, CHK_LEN);
 
-    // printf("RR\n");
-    // printf("Len: %d\n", pdu_len);
-
-    // print_hex(RR_buff, pdu_len);
-
-    // if ( in_cksum((unsigned short *) RR_buff, pdu_len) == 0) {
-    //     printf("WORKED\n");
-    // } else {
-    //     printf("FAILED\n");
-    // }
-
     return pdu_len; 
 }
 
@@ -125,16 +111,6 @@ int create_packet(uint8_t buff[], uint32_t seq_num, uint8_t flag, uint8_t data[]
     checksum = in_cksum((unsigned short *) buff, pdu_len);
     memcpy(buff + SEQ_LEN, &checksum, CHK_LEN);
 
-    // printf("FULL\n");
-    // printf("Len: %d\n", pdu_len);
-
-    // print_hex(buff, pdu_len);
-
-    // if ( in_cksum((unsigned short *) buff, pdu_len) == 0) {
-    //     printf("WORKED\n");
-    // } else {
-    //     printf("FAILED");
-    // }
     return pdu_len;
 }
 
@@ -155,9 +131,6 @@ uint32_t create_file_data(uint8_t filename_buf[], char *filename, uint32_t windo
     memcpy(filename_buf + offset, filename, name_len);
     offset += name_len;
 
-    // printf("DATA\n");
-    // printf("Len: %d\n", offset);
-    // print_hex(filename_buf, offset);
     return offset;
 }
 
@@ -167,11 +140,14 @@ void send_EOF_pkt(uint8_t seq_num, Connection *server) {
     safeErrSend(EOF_buff, EOF_len, server);
 }
 
+
 uint32_t get_SREJ(uint8_t recv_packet[]) {
     uint32_t SREJ_num = 0;
     memcpy(&SREJ_num, recv_packet + HEADER_LEN, SREJ_LEN);
-    return SREJ_num;
+    return ntohl(SREJ_num);
 }
+
+
 
 uint32_t get_RR(uint8_t recv_packet[]) {
     uint32_t RR_num = 0;

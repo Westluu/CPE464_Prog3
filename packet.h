@@ -48,7 +48,7 @@ uint32_t create_file_data(uint8_t filename_buf[], char *filename, uint32_t windo
 void send_EOF_pkt(uint8_t seq_num, Connection *server);
 void send_seq_pkt(Window *window, uint32_t seq_num, Connection *server);
 void Csend_SREJ_pkt(Window *window, uint8_t recv_pkt[], Connection *server);
-void Ssend_SREJ_pkt(Window *window, uint32_t SREJ_num, Connection *client);
+void Ssend_SREJ_pkt(uint32_t seq_num, uint32_t SREJ_num, Connection *client);
 
 void send_RR_packet(uint32_t seq_num, uint32_t RR_num, Connection *client);
 int create_RR_packet(uint8_t RR_buff[], uint32_t seq_num, uint8_t flag, uint32_t RR_num);
