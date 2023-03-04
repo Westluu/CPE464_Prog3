@@ -31,8 +31,7 @@ int CsafeRecvfrom(int socketNum, uint8_t *buf, int len, Connection *from)
 	int recv_len = 0;
 	from->len = sizeof(struct sockaddr_in6);
 
-	if ((recv_len = recvfrom(socketNum, buf, (size_t) len, 0, (struct sockaddr *) &(from->remote), &from->len)) < 0)
-	{
+	if ((recv_len = recvfrom(socketNum, buf, (size_t) len, 0, (struct sockaddr *) &(from->remote), &from->len)) < 0) {
 		perror("recvfrom: ");
 		exit(-1);
 	}

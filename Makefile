@@ -4,17 +4,15 @@
 # all target makes UDP test code
 # tcpAll target makes the TCP test code
 
-
 CC= gcc
 CFLAGS= -g -Wall
 LIBS = 
 
-OBJS = networks.o gethostbyname.o pollLib.o safeUtil.o packet.o window.o
+OBJS = networks.o gethostbyname.o pollLib.o safeUtil.o window.o packet.o
 
 #uncomment next two lines if your using sendtoErr() library
 LIBS += libcpe464.2.21.a -lstdc++ -ldl
 CFLAGS += -D__LIBCPE464_
-
 
 all: rcopy server
 
