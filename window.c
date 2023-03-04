@@ -20,28 +20,22 @@
 #define OK_FILENAME 8
 #define BAD_FILENAME 9
 
-void cprint_hex(uint8_t buff[], int len) {
-    int i = 0;
-    for (i=0; i < len; i++) {
-        printf("%02x ", buff[i]);
-        fflush(stdout);
-    }
-    printf("\n");
-}
-
 void init_window(Window *window, int size) {
     window->lower = 0;
     window->current = 0;
     window->upper = size;
     window->size = size;
-    WindowBuf *buf = malloc(sizeof(WindowBuf) * size);
+    printf("size: %d\n",size);
+    WindowBuf *buf = safe_malloc(sizeof(WindowBuf) * size);
     window->buf = buf;
+    init_buffer(window, size);
 }
 
 void init_buffer(Window *window, uint32_t size) {
     int i = 0;
     for (i = 0; i < size; i++) {
         (window->buf)[i].valid = 0;
+        (window->buf)[i].pkt_len = 0;
     }
 }
 
@@ -91,12 +85,26 @@ uint32_t get_current(Window *window) {
     return window->current;
 }
 
+uint8_t get_valid(Window *window, uint32_t seq_num) {
+    int i = seq_num % window->size;
+    return (window->buf)[i].valid;
+}
+
+void set_valid(Window *window, uint32_t seq_num, uint8_t valid) {
+    int i = seq_num % window->size;
+    (window->buf)[i].valid = valid;
+}
+
 uint32_t read_packet(Window *window, uint8_t buffer[], uint32_t seq_num) {
     int i = seq_num % window->size;
     uint32_t buff_len = (window->buf)[i].pkt_len;
     memcpy(buffer, (window->buf)[i].packet, buff_len);
-    cprint_hex(buffer, buff_len);
     return buff_len;
+}
+
+uint8_t *get_packet(Window *window, uint32_t seq_num) {
+    int i = seq_num % window->size;
+    return (window->buf)[i].packet;
 }
 
 void insert_packet(Window *window, uint8_t packet[], uint32_t pkt_len) {

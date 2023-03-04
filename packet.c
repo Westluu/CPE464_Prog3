@@ -192,13 +192,13 @@ uint32_t get_seqnum(uint8_t recv_packet[]) {
 uint32_t get_windowSize(uint8_t recv_packet[]) {
     uint32_t window_size = 0;
     memcpy(&window_size, recv_packet + HEADER_LEN, WINDOW_LEN);
-    return window_size;
+    return ntohl(window_size);
 }
 
 uint32_t get_bufferSize(uint8_t recv_packet[]) {
     uint32_t buffer_size = 0;
     memcpy(&buffer_size, recv_packet + HEADER_LEN + WINDOW_LEN, BUFFER_LEN);
-    return buffer_size;
+    return ntohl(buffer_size);
 }
 
 uint8_t get_fileLen(uint8_t recv_packet[]) {

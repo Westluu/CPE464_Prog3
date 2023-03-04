@@ -26,6 +26,7 @@ int main(int argc, char *argv[]) {
     setupPollSet();
     sendtoErr_init(atof(argv[5]), DROP_OFF, FLIP_OFF, DEBUG_ON, RSEED_OFF);
     processFile(argv);
+    return 1;
 }
 
 void processFile(char *argv[]) {
@@ -135,7 +136,6 @@ STATE send_data(FILE *upload_file, Connection *server, Window *window, uint32_t 
         read_buf[buffer_size] = '\0';
         
         if (read_len > 0) {
-            printf("read: %s\n", read_buf);
             uint8_t data_buff[MAXBUF];
             uint32_t data_len = create_packet(data_buff, get_current(window), DATA_PACKET, read_buf, read_len);
             safeErrSend(data_buff, data_len, server);

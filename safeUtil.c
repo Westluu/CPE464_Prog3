@@ -112,3 +112,11 @@ void * sCalloc(size_t nmemb, size_t size)
 	return returnValue;
 }
 
+void *safe_malloc(size_t size) {
+    void *a = malloc(size);
+    if (a == NULL) {
+        perror("malloc");
+        exit(-1);
+    }
+    return a;
+}

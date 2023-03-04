@@ -25,6 +25,7 @@ int safeErrSend(uint8_t *data, uint32_t len, Connection *to);
 
 void * srealloc(void *ptr, size_t size);
 void * sCalloc(size_t nmemb, size_t size);
+void *safe_malloc(size_t size);
 
 
 #endif

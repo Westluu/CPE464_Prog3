@@ -88,6 +88,7 @@ void process_client(uint32_t serverSocketNumber, uint8_t recv_buf[], uint32_t re
 
     uint32_t window_size = get_windowSize(recv_buf);
     uint32_t buffer_size = get_bufferSize(recv_buf);
+    printf("buffer size: %d\n", buffer_size);
     init_window(&window, window_size);
     uint8_t flag = get_flag(recv_buf);
     open_file(recv_buf);
@@ -108,6 +109,7 @@ void process_client(uint32_t serverSocketNumber, uint8_t recv_buf[], uint32_t re
                 break;
             
             case DONE:
+                fclose(file);
                 exit(0);
                 break;
             
@@ -149,6 +151,7 @@ STATE recv_data(Connection *client, FILE *file, Window *window) {
 
         uint8_t flag = get_flag(recv_pkt);
         if (flag == EOF_FLAG) {
+            printf("GOT EOF\n");
             return DONE;
         }
         
@@ -203,13 +206,18 @@ void recover_packet(Window *window, uint32_t recv_seq, Connection *client) {
 
 
 void loop_window(Window *window, uint32_t recv_len, FILE *file, Connection *client) {
-    while ((window->buf)[seq_num].valid) {
+    uint8_t valid = get_valid(window, seq_num);
+    while (valid){
         uint32_t data_len = recv_len - HEADER_LEN;
-        fwrite((window->buf)[seq_num].packet + HEADER_LEN, sizeof(uint8_t), data_len, file);
+        // printf("dataL: %d\n", data_len);
+        // printf("packet: %.*s\n", data_len, (window->buf)[seq_num].packet);
+        // print_hex(read_packet(window, ) + HEADER_LEN, data_len);
+        printf("here\n");
+        fwrite(get_packet(window, seq_num) + HEADER_LEN, sizeof(uint8_t), data_len, file);
         fflush(file);
-        printf("wrote to file");
-        (window->buf)[seq_num].valid = 0;
+        set_valid(window, seq_num, 0);
         seq_num++;
+        valid = get_valid(window, seq_num);
     }
 }
 

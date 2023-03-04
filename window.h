@@ -10,7 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-
+#include "safeUtil.h"
 
 #define MAXBUF 1407
 
@@ -29,15 +29,18 @@ typedef struct Window {
     WindowBuf *buf;
 } Window;
 
-void cprint_hex(uint8_t buff[], int len);
 void init_window(Window *window, int size);
 void init_buffer(Window *window, uint32_t size);
 uint32_t get_current(Window *window);
+uint8_t get_valid(Window *window, uint32_t seq_num);
 
 int check_full(Window *window);
 int check_closed(Window *window);
 int check_last(Window *window);
 void update_current(Window *window);
+
+void set_valid(Window *window, uint32_t seq_num, uint8_t valid);
+uint8_t get_valid(Window *window, uint32_t seq_num);
 
 void slide_window(Window *window, int new_lower);
 void remove_packet(Window *window, uint32_t seq_num);
@@ -45,5 +48,5 @@ uint32_t read_packet(Window *window, uint8_t buffer[], uint32_t seq_num);
 void insert_packet(Window *window, uint8_t packet[], uint32_t pkt_len);
 uint32_t wget_seqnum(uint8_t recv_packet[]);
 void print_window(Window *window);
-
+uint8_t *get_packet(Window *window, uint32_t seq_num);
 #endif
