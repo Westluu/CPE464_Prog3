@@ -41,7 +41,6 @@ void init_buffer(Window *window, uint32_t size) {
 
 void update_current(Window *window) {
     window->current += 1;
-    // printf("current: %d\n", window->current);
 }
 
 int check_last(Window *window) {
@@ -70,10 +69,6 @@ void slide_window(Window *window, int new_lower) {
     int i;
     window->upper = new_lower + window->size;
     window->lower = new_lower;
-    // for (j = window->lower; j < new_lower; j++) {
-    //     i = j % window->size;
-    //     (window->buf)[i].valid = 0;
-    // }
 }
 
 void remove_packet(Window *window, uint32_t seq_num) {

@@ -102,14 +102,14 @@ STATE send_filename(char *filename, Connection *server, uint32_t seq_num, uint32
         if (flag == OK_FILENAME) {
             return SEND_DATA;
         } 
-        
+
         else if (flag == BAD_FILENAME) {
             return DONE;
         }
 
     } else { //Did not recieve file ack
         count++;
-        return START; //look at papaer
+        return START;
     }
     return FILENAME;
 }
@@ -148,7 +148,6 @@ STATE send_data(FILE *upload_file, Connection *server, Window *window, uint32_t 
     
     //Full Window
     else if (check_full(window) || (read_EOF && !check_last(window)) ) {
-        // printf("window full\n");
         if ((socket = pollCall(1000)) < 0) {
             send_seq_pkt(window, get_lower(window), server);
             count++;

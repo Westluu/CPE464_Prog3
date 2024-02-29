@@ -156,7 +156,6 @@ STATE recv_data(Connection *client, FILE *file, Window *window) {
         if (checksum != 0) {
             return RECV_DATA;
         }
-        //insert packet into the window
 
         uint32_t recv_seq_num = get_seqnum(recv_pkt);
 
@@ -166,7 +165,6 @@ STATE recv_data(Connection *client, FILE *file, Window *window) {
             loop_window(window, recv_len, file, client);
             send_RR_packet(server_seq_num , seq_num, client);
             server_seq_num++;
-
         }
 
         //If we get a duplicate Packet

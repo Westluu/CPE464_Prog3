@@ -27,17 +27,7 @@ int create_header(uint8_t buff[], uint32_t seq_num, uint8_t flag) {
     pdu_len = offset;
     checksum = in_cksum((unsigned short *) buff, pdu_len);
     memcpy(buff + SEQ_LEN, &checksum, CHK_LEN);
-    
-    // printf("HEADER\n");
-    // printf("Len: %d\n", pdu_len);
 
-    // print_hex(buff, pdu_len);
-
-    // if ( in_cksum((unsigned short *) buff, pdu_len) == 0) {
-    //     printf("WORKED\n");
-    // } else {
-    //     printf("FAILED\n");
-    // }
     return pdu_len; 
 }
 
@@ -116,8 +106,6 @@ int create_packet(uint8_t buff[], uint32_t seq_num, uint8_t flag, uint8_t data[]
 
 uint32_t create_file_data(uint8_t filename_buf[], char *filename, uint32_t window_size, uint32_t buffer_size) {
     uint32_t offset = 0;
-
-    printf("filename: %s\n", filename);
     uint8_t name_len = strlen(filename);
     uint32_t nwindow_size = htonl(window_size);
     uint32_t nbuffer_size = htonl(buffer_size);

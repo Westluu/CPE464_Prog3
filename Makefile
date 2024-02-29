@@ -22,18 +22,6 @@ rcopy: rcopy.c $(OBJS)
 server: server.c $(OBJS)
 	$(CC) $(CFLAGS) -o server server.c $(OBJS) $(LIBS)
 
-# udpClient: udpClient.c $(OBJS) 
-# 	$(CC) $(CFLAGS) -o udpClient udpClient.c $(OBJS) $(LIBS)
-
-# udpServer: udpServer.c $(OBJS) 
-# 	$(CC) $(CFLAGS) -o udpServer udpServer.c  $(OBJS) $(LIBS)
-
-# myClient: myClient.c $(OBJS)
-# 	$(CC) $(CFLAGS) -o myClient myClient.c  $(OBJS) $(LIBS)
-
-# myServer: myServer.c $(OBJS)
-# 	$(CC) $(CFLAGS) -o myServer myServer.c $(OBJS) $(LIBS)
-
 .c.o:
 	gcc -c $(CFLAGS) $< -o $@
 
